@@ -2,31 +2,40 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "Launch Client",
 			"type": "extensionHost",
 			"request": "launch",
-			"name": "Launch Client",
 			"runtimeExecutable": "${execPath}",
 			"args": ["--extensionDevelopmentPath=${workspaceFolder}" ],
 			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outFiles": ["${workspaceFolder}/client/out/**/*.js"],
-			"preLaunchTask": "npm: watch"
+			"preLaunchTask": {
+				"type": "npm",
+				"script": "compile"
+			},
+			"env": {
+				"VSCODE_DEBUG_MODE": "true"
+			}
 		},
 		{
-			"type": "node",
-			"request": "attach",
-			"name": "Attach to Server",
-			"address": "localhost",
-			"protocol": "inspector",
-			"port": 6011,
-			"sourceMaps": true,
-			"outFiles": ["${workspaceFolder}/server/out/**/*.js"]
+			"name": "Launch Server",
+			"type": "python",
+			"request": "launch",
+			"module": "server",
+			"args": ["--tcp"],
+			"justMyCode": false,
+			"python": "${command:python.interpreterPath}",
+			"cwd": "${workspaceFolder}",
+			"env": {
+				"PYTHONPATH": "${workspaceFolder}"
+			}
 		}
 	],
 	"compounds": [
 		{
-			"name": "Client + Server",
-			"configurations": ["Launch Client", "Attach to Server"]
+			"name": "Server + Client",
+			"configurations": ["Launch Server", "Launch Client"]
 		}
 	]
 }

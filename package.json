@@ -30,15 +30,12 @@
 	],
 	"main": "./client/out/extension",
 	"scripts": {
-		"vscode:prepublish": "npm run webpack",
-		"webpack": "npm run clean && webpack --mode production --config ./client/webpack.config.js && webpack --mode production --config ./server/webpack.config.js",
-		"webpack:dev": "npm run clean && webpack --mode none --config ./client/webpack.config.js && webpack --mode none --config ./server/webpack.config.js",
+		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -b",
 		"compile:client": "tsc -b ./client/tsconfig.json",
-		"compile:server": "tsc -b ./server/tsconfig.json",
 		"watch": "tsc -b -w",
-		"clean": "rimraf client/out && rimraf server/out",
-		"postinstall": "cd client && npm install && cd ../server && npm install && cd .."
+		"clean": "rimraf client/out",
+		"postinstall": "cd client && npm install && cd .."
 	},
 	"devDependencies": {
 		"@types/node": "^14.14.10",

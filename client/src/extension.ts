@@ -1,45 +1,70 @@
 "use strict";
 
+import * as net from "net";
 import * as path from "path";
-import { ExtensionContext, window as Window } from "vscode";
-import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, TransportKind } from "vscode-languageclient";
+import { ExtensionContext, workspace } from "vscode";
+import { LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient";
 
-export function activate(context: ExtensionContext): void {
-    const serverModule = context.asAbsolutePath(path.join("server", "out", "server.js"));
-    const debugOptions = { execArgv: ["--nolazy", "--inspect=6009"], cwd: process.cwd() };
-    const serverOptions: ServerOptions = {
-        run: { module: serverModule, transport: TransportKind.ipc, options: { cwd: process.cwd() } },
-        debug: {
-            module: serverModule,
-            transport: TransportKind.ipc,
-            options: debugOptions,
-        },
-    };
-    const clientOptions: LanguageClientOptions = {
+let client: LanguageClient;
+
+function getClientOptions() : LanguageClientOptions {
+    return {
         documentSelector: [
-            {
-                scheme: "file",
-                language: "plaintext",
-            },
-            {
-                scheme: "file",
-                language: "markdown",
-            }],
-        diagnosticCollectionName: "sample",
-        revealOutputChannelOn: RevealOutputChannelOn.Never,
-    };
-
-    let client: LanguageClient;
-    try {
-        client = new LanguageClient("Sample LSP Server", serverOptions, clientOptions);
-    } catch (err) {
-        Window.showErrorMessage("The extension couldn't be started. See the output channel for details.");
-
-        return;
+            {scheme: "file", language: "plaintext"},
+        ],
+        outputChannelName: "[pygls] Test",
     }
-    client.registerProposedFeatures();
+}
 
-    context.subscriptions.push(
-        client.start(),
+
+function isStartedInDebugMode(): boolean {
+    return process.env.VSCODE_DEBUG_MODE === "true";
+}
+
+function startLangServerTCP(addr: number): LanguageClient {
+    const serverOptions: ServerOptions = () => {
+        return new Promise((resolve, _) => {
+            const clientSocket = new net.Socket();
+            clientSocket.connect(addr, "127.0.0.1", () => {
+                resolve({
+                    reader: clientSocket,
+                    writer: clientSocket,
+                })
+            })
+        })
+    }
+
+    return new LanguageClient(
+        `tcp lang server(port ${addr})`,
+        serverOptions,
+        getClientOptions()
     );
+}
+
+function startLangServer(command: string, args: string[], cwd: string) :LanguageClient {
+    const serverOptions: ServerOptions = {
+        args, command, options: {
+            cwd
+        }
+    }
+    return new LanguageClient(command, serverOptions, getClientOptions())
+}
+
+export function activate(context: ExtensionContext) {
+    if (isStartedInDebugMode()) {
+        client = startLangServerTCP(2087);
+    } else {
+        const cwd = path.join(__dirname, "..", "..");
+        const pythonPath = workspace.getConfiguration("python").get<string>("pythonPath");
+        if (!pythonPath) {
+            throw new Error("`python.python.Path` is not set");
+        }
+        client = startLangServer(pythonPath, ["-m", "server"], cwd)
+    }
+
+    context.subscriptions.push(client.start());
+}
+
+export function deactivate(): Thenable<void> {
+    return client ? client.stop() : Promise.resolve();
 }
