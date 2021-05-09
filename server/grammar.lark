@@ -1,0 +1,20 @@
+start: (statement? _NL)+
+statement: "say" opa? opb? opc? -> say
+           | "multilinesay" opa _NL opb -> multisay
+
+opa : "OPTION_A" [(_WS option_a)+] 
+opb : "OPTION_B" [(_WS option_b)+] 
+opc : "OPTION_C" _WS [option_c ("," option_c)*] 
+option_a: chars -> option_a
+option_b: chars -> option_b
+option_c: chars -> option_c
+cmd: chars -> command
+allchars : /[^']+/[/\n+/] 
+chars : /[^\+\|\s\(\)',]+/[/\n+/]
+
+_NL: _WS*(/\r?\n/)+
+
+COMMENT: "#" /[^\n]/*
+%ignore COMMENT
+%import common.WS -> _WS
+%ignore _WS
